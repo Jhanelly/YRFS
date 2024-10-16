@@ -1,0 +1,122 @@
+---
+title: "Propuesta de investigación"
+author: "Jhanelly Chalá"
+date: "2024-10-15"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+La inclusión financiera, entendida como el acceso y uso de productos y servicios financieros formales, es reconocida como un factor clave para promover el crecimiento económico y reducir la pobreza, mejorando así la calidad de vida de los hogares. Sin embargo, a pesar de sus beneficios, una parte significativa de la población ecuatoriana continúa excluida del sistema financiero formal, lo que limita su capacidad para gestionar sus ingresos, ahorrar, acceder a créditos productivos y participar plenamente en la economía formal.
+
+En Ecuador, aunque ha habido avances en términos de inclusión financiera, la brecha sigue siendo considerable. Según datos del Banco Mundial, en 2017 solo el 50.87% de las personas de 15 años o más poseía una cuenta en una institución financiera. A pesar de un crecimiento sostenido, alcanzando el 64.18% en 2021, un porcentaje significativo de la población aún no utiliza estos servicios. Esto puede estar asociado con diversos factores como la desconfianza en las instituciones financieras, falta de dinero, costos financieros, la lejanía de las entidades bancarias, y la percepción de que estos servicios pueden no ser necesarios.
+
+En los últimos años, las fintech han emergido como una solución innovadora para reducir esta brecha en diferentes partes del mundo, aprovechando la creciente penetración de los teléfonos móviles e internet en el país. A través de servicios como los pagos digitales, las fintech permiten que personas accedan a productos financieros de manera más sencilla y segura. Sin embargo, a pesar del potencial que ofrecen estas plataformas, su adopción y expansión aún enfrentan desafíos relacionados con la regulación, la confianza del público y la educación financiera.
+
+Un paso significativo hacia la regulación de los pagos electrónicos en Ecuador fue la resolución No. 441-2018-M, emitida por la Junta de Política y Regulación Financiera, que estableció un marco para la utilización de plataformas de pagos electrónicos. Esta regulación buscaba fomentar el uso de los pagos digitales, lo que a su vez, impulsa la inclusión financiera en el país.
+
+La pandemia de COVID-19 jugó un papel importante en el proceso de adoptar los servicios digitales. Personas que antes de la pandemia se mostraban racias o no consideraban necesarios servicios como los pagos electrónicos, se vieron en la obligación de adoptar tecnoligías financieras para recibir pagos, realizar compras o pagar servicios. Como producto de esta crisis sanitaria,  se aceleró la transición hacia el uso de los pagos digitales, pasando de ser una opción a una necesidad.
+
+En este sentido, el presente estudio busca analizar cómo los pagos digitales, impulsados por las fintech, pueden contribuir a reducir la exclusión financiera en Ecuador. Se propone utilizar un modelo econométrico de diferencias en diferencias para evaluar si la regulación de pagos electrónicos emitida mediante la resolución No. 441-2018-M ha influido en el uso de los pagos digitales y, en consecuencia, en la inclusión financiera en el país. Además, se analizará cómo la pandemia de COVID-19 pudo haber acelerado la adopción de estas tecnologías.
+
+La base de datos utilizada para esta investigación es la Global findex, una encuesta realizada a 123 economías del mundo, la cual se encuentra disponible para los años 2011, 2014, 2017 y 2021, esta base de datos proporcionada por el Banco Mundial, contiene información relacionada con el acceso y uso a los servicios financieros, incluyendo pagos, ahorros y préstamos. Para el caso ecuatoriano, el tamaño de la muestra es de 1000 personas, debido a que la encuesta se realizó durante la pandemia de COVID-19, los datos fueron recopilados mediante teléfono fijo y móvil desde el 5 de octubre del 2021 hasta el 2 de diciembre del 2021.
+
+En esta primera parte, se explorará la variable anydigpayment, la cual incluye información relacionada con si la persona encuesta ha realizado o recibido un pago digital. Además, la variable account_fin presenta información de las personas que poseen una cuenta en una institución financiera, como aproximación momentánea de inclusión financiera.
+
+```{r include=FALSE}
+#Cargar paquetes
+library(haven)
+library(dplyr)
+
+#Cargar datos
+data_2017 <- read_sav("C:/Users/jhane/Documents/Fellowship/YRFS/datos/findex2017.sav")
+data_2021 <- read_stata("C:/Users/jhane/Documents/Fellowship/YRFS/datos/findex2021.dta")
+
+
+#La global 2017 no posee la variable anydigpayment, por lo tanto, se recodifica mediante las otras variables y
+#se selecionan las que son de interes por el momento
+global_2017 <- data_2017 %>% mutate(anydigpayment=factor(case_when(fin14a==1 |
+                                                              fin5==1   |
+                                                              fin14b==1 |
+                                                              fin14c==1 |
+                                                              fin27b==1 |
+                                                              fin29b==1 |
+                                                              fin31b==1 |
+                                                              fin34b==1 | 
+                                                              fin39b==1 |
+                                                              fin43b==1 |
+                                                              fin47b==1 |
+                                                              fin47c4==1~ 1, TRUE~0), levels = c(0, 1), 
+                                                            labels = c("No", "Si")),
+                                    account_fin=factor(account_fin,levels = c(0, 1), 
+                                                       labels = c("No", "Si")),
+                                    año=2017) %>% 
+  select(año,female,age,educ,inc_q,emp_in,account_fin,anydigpayment)
+
+#Seleccionando variables de interes global_2021
+global_2021 <- data_2021 %>% 
+                  mutate(año=2021,
+                         anydigpayment=factor(anydigpayment,levels = c(0, 1), 
+                                              labels = c("No", "Si")),
+                         account_fin=factor(account_fin,levels = c(0, 1), 
+                                            labels = c("No", "Si"))) %>%  
+                  select(año,female,age,educ,inc_q,emp_in,account_fin,anydigpayment) 
+
+#Union de ambas datas
+global_2017 <- global_2017 %>% mutate(across(where(is.labelled), haven::zap_labels))
+global_2021 <- global_2021 %>% mutate(across(where(is.labelled), haven::zap_labels))
+global_2017_2021 <- rbind(global_2017, global_2021)
+
+```
+
+```{r echo=FALSE}
+tabla_cuenta <- table(global_2017_2021$año, global_2017_2021$account_fin)
+
+# Mostrar la tabla con kable y kableExtra
+knitr::kable(tabla_cuenta, 
+             caption = "Personas que poseen cuenta en una institución financiera", 
+             col.names = c("No", "Sí"),
+             align = "c") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                            full_width = F, 
+                            position = "center")
+```
+
+```{r echo=FALSE}
+tabla_pagos <- table(global_2017_2021$año, global_2017_2021$anydigpayment)
+
+# Mostrar la tabla con kable y kableExtra
+knitr::kable(tabla_pagos, 
+             caption = "Personas que han realizado pagos digitales", 
+             col.names = c("No", "Sí"),
+             align = "c") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                            full_width = F, 
+                            position = "center")
+```
+En ambas tablas, es posible observar que del 2017 al 2021 existió un incremento en el número de personas que poseen cuenta bancaria y el número de personas que realizan pagos digitales.
+
+Para explorar si existe alguna relación entre tener una cuenta en una institución financiera y los pagos digitales, se realiza una prueba chi cuadrado en la que se obtuvo:
+
+```{r echo=FALSE}
+tabla_contingencia <- table(global_2017_2021$anydigpayment, global_2017_2021$account_fin)
+chi_cuadrado <- chisq.test(tabla_contingencia)
+chi_cuadrado
+```
+
+Según los resultados del test: hacer pagos digitales está significativamente relacionado con tener una cuenta bancaria
+
+Entre las investigaciones que se relacionan con este tema se encuentran:
+
+-   The digital payment-financial inclusion nexus and payment system innovation within the global open economy during the COVID-19 pandemic [Ref_1](https://www.sciencedirect.com/science/article/pii/S2199853123002755)
+
+-   Unveiling financial inclusion dynamics: Fintech's resonance in Association of Southeast Asian Nations (ASEAN) [Ref_2](https://onlinelibrary.wiley.com/doi/10.1002/ijfe.2963)
+
+-   Mobile money, digital financial inclusion, and evidence on saving and borrowing [Ref_3](https://www.emerald.com/insight/content/doi/10.1108/DPRG-04-2024-0060/full/html)
+
+-   Can Fintech development improve the financial inclusion of village and township banks? Evidence from China [Ref_4](https://www.sciencedirect.com/science/article/pii/S0927538X24000751)
+
+-   *Finclusion*: The nexus of Fintech and financial inclusion against banks’ market power [Ref_5](https://www.sciencedirect.com/science/article/pii/S2405844023097591)
+
